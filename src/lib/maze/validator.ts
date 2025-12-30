@@ -132,7 +132,7 @@ export const MIN_ROOM_SIZE = 1;
 
 /**
  * Check if all rooms on both sides of the maze meet the minimum size requirement
- * Rooms must have at least MIN_ROOM_SIZE cells (default: 3)
+ * Rooms must have at least MIN_ROOM_SIZE cells (default: 1)
  */
 export function meetsMinimumRoomSize(
   maze: DualMaze,

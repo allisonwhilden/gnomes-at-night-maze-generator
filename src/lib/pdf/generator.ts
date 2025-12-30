@@ -5,8 +5,16 @@
 
 import { jsPDF } from 'jspdf';
 import { GeneratedMaze, Side, Cell, Treasure } from '@/lib/maze/types';
-import { cellKey, getCorners } from '@/lib/maze/flood-fill';
-import { TREASURE_NAMES, TREASURE_IMAGES } from '@/lib/maze/constants';
+import { cellKey, getCorners, createWallIndex, hasWallBetweenIndexed, WallIndex } from '@/lib/maze/flood-fill';
+import {
+  TREASURE_NAMES,
+  TREASURE_IMAGES,
+  BACKGROUND_IMAGE,
+  HORIZONTAL_WALL_IMAGES,
+  VERTICAL_WALL_IMAGES,
+  RENDER_CONFIG,
+  seededRandom,
+} from '@/lib/maze/constants';
 
 // Page dimensions in mm (10.25" x 10.25" square)
 const PAGE_SIZE = 10.25 * 25.4; // 260.35mm
@@ -16,27 +24,6 @@ const MARGIN = 15;
 
 // Cache for loaded images (base64)
 const imageCache: Map<string, string> = new Map();
-
-// Background image path
-const BACKGROUND_IMAGE = '/background.png';
-
-// Wall image assets
-const HORIZONTAL_WALLS = [
-  '/walls/horizontal1.png',
-  '/walls/horizontal2.png',
-  '/walls/horizontal3.png',
-];
-const VERTICAL_WALLS = [
-  '/walls/vertical1.png',
-  '/walls/vertical2.png',
-  '/walls/vertical3.png',
-];
-
-// Simple seeded random for consistent wall selection
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 9999) * 10000;
-  return x - Math.floor(x);
-}
 
 /**
  * Load an image and convert to base64 data URL
@@ -93,7 +80,7 @@ async function preloadWallImages(): Promise<{ horizontal: string[]; vertical: st
   const horizontal: string[] = [];
   const vertical: string[] = [];
 
-  for (const path of HORIZONTAL_WALLS) {
+  for (const path of HORIZONTAL_WALL_IMAGES) {
     try {
       const base64 = await loadImageAsBase64(path);
       horizontal.push(base64);
@@ -102,7 +89,7 @@ async function preloadWallImages(): Promise<{ horizontal: string[]; vertical: st
     }
   }
 
-  for (const path of VERTICAL_WALLS) {
+  for (const path of VERTICAL_WALL_IMAGES) {
     try {
       const base64 = await loadImageAsBase64(path);
       vertical.push(base64);
@@ -133,27 +120,6 @@ function calculateRenderOptions(gridSize: number): RenderOptions {
   return { cellSize, offsetX, offsetY };
 }
 
-function hasWallBetween(
-  maze: GeneratedMaze,
-  cell1: Cell,
-  cell2: Cell,
-  side: Side
-): boolean {
-  for (const wall of maze.walls) {
-    const matchesForward =
-      wall.cell1.x === cell1.x && wall.cell1.y === cell1.y &&
-      wall.cell2.x === cell2.x && wall.cell2.y === cell2.y;
-    const matchesBackward =
-      wall.cell1.x === cell2.x && wall.cell1.y === cell2.y &&
-      wall.cell2.x === cell1.x && wall.cell2.y === cell1.y;
-
-    if (matchesForward || matchesBackward) {
-      return side === 'A' ? wall.existsOnSideA : wall.existsOnSideB;
-    }
-  }
-  return false;
-}
-
 function renderMazeSide(
   doc: jsPDF,
   maze: GeneratedMaze,
@@ -161,13 +127,14 @@ function renderMazeSide(
   options: RenderOptions,
   treasureImages: Map<string, string>,
   backgroundImage: string | null,
-  wallImages: { horizontal: string[]; vertical: string[] }
+  wallImages: { horizontal: string[]; vertical: string[] },
+  wallIndex: WallIndex
 ): void {
   const { cellSize, offsetX, offsetY } = options;
   const { gridSize } = maze;
   const treasures = side === 'A' ? maze.treasuresSideA : maze.treasuresSideB;
   const corners = getCorners(gridSize);
-  const wallThickness = cellSize * 0.15;
+  const wallThickness = cellSize * RENDER_CONFIG.wallThickness;
 
   // Draw background image
   if (backgroundImage) {
@@ -268,7 +235,7 @@ function renderMazeSide(
       // Check wall to the right (vertical wall image)
       if (x < gridSize - 1) {
         const rightCell = { x: x + 1, y };
-        if (hasWallBetween(maze, cell, rightCell, side) && hasVerticalWalls) {
+        if (hasWallBetweenIndexed(wallIndex, cell, rightCell, side) && hasVerticalWalls) {
           const seed = x * 100 + y * 10 + 5;
           const wallImage = wallImages.vertical[Math.floor(seededRandom(seed) * wallImages.vertical.length)];
           doc.addImage(
@@ -285,7 +252,7 @@ function renderMazeSide(
       // Check wall below (horizontal wall image)
       if (y < gridSize - 1) {
         const belowCell = { x, y: y + 1 };
-        if (hasWallBetween(maze, cell, belowCell, side) && hasHorizontalWalls) {
+        if (hasWallBetweenIndexed(wallIndex, cell, belowCell, side) && hasHorizontalWalls) {
           const seed = x * 100 + y * 10 + 6;
           const wallImage = wallImages.horizontal[Math.floor(seededRandom(seed) * wallImages.horizontal.length)];
           doc.addImage(
@@ -306,7 +273,7 @@ function renderMazeSide(
     const cx = offsetX + corner.x * cellSize + cellSize / 2;
     const cy = offsetY + corner.y * cellSize + cellSize / 2;
 
-    doc.setFontSize(cellSize * 0.6);
+    doc.setFontSize(cellSize * RENDER_CONFIG.cornerFontSize);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(51, 51, 51);
     doc.text(`${index + 1}`, cx, cy, { align: 'center', baseline: 'middle' });
@@ -318,7 +285,7 @@ function renderMazeSide(
     const cy = offsetY + treasure.cell.y * cellSize + cellSize / 2;
     const treasureName = TREASURE_NAMES[treasure.id - 1];
     const imageData = treasureName ? treasureImages.get(treasureName) : null;
-    const imageSize = cellSize * 0.75;
+    const imageSize = cellSize * RENDER_CONFIG.treasureSize;
 
     if (imageData) {
       // Draw treasure image
@@ -391,15 +358,16 @@ export async function generateMazePDF(maze: GeneratedMaze): Promise<void> {
   });
 
   const options = calculateRenderOptions(maze.gridSize);
+  const wallIndex = createWallIndex(maze);
 
   // Render Side A on first page
-  renderMazeSide(doc, maze, 'A', options, treasureImages, backgroundImage, wallImages);
+  renderMazeSide(doc, maze, 'A', options, treasureImages, backgroundImage, wallImages, wallIndex);
 
   // Add second page
   doc.addPage([PAGE_SIZE, PAGE_SIZE]);
 
   // Render Side B on second page
-  renderMazeSide(doc, maze, 'B', options, treasureImages, backgroundImage, wallImages);
+  renderMazeSide(doc, maze, 'B', options, treasureImages, backgroundImage, wallImages, wallIndex);
 
   // Download the PDF
   const filename = `gnomes-maze-${maze.difficulty}-${maze.seed}.pdf`;
@@ -427,10 +395,11 @@ export async function generateMazePDFBlob(maze: GeneratedMaze): Promise<Blob> {
   });
 
   const options = calculateRenderOptions(maze.gridSize);
+  const wallIndex = createWallIndex(maze);
 
-  renderMazeSide(doc, maze, 'A', options, treasureImages, backgroundImage, wallImages);
+  renderMazeSide(doc, maze, 'A', options, treasureImages, backgroundImage, wallImages, wallIndex);
   doc.addPage([PAGE_SIZE, PAGE_SIZE]);
-  renderMazeSide(doc, maze, 'B', options, treasureImages, backgroundImage, wallImages);
+  renderMazeSide(doc, maze, 'B', options, treasureImages, backgroundImage, wallImages, wallIndex);
 
   return doc.output('blob');
 }

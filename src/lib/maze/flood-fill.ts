@@ -16,6 +16,53 @@ export function cellKey(cell: Cell): string {
   return `${cell.x},${cell.y}`;
 }
 
+/**
+ * Create a normalized wall key (smaller cell first) for consistent lookups
+ */
+export function wallKey(cell1: Cell, cell2: Cell): string {
+  // Normalize: put smaller cell first (compare x, then y)
+  if (cell1.x < cell2.x || (cell1.x === cell2.x && cell1.y < cell2.y)) {
+    return `${cellKey(cell1)}-${cellKey(cell2)}`;
+  }
+  return `${cellKey(cell2)}-${cellKey(cell1)}`;
+}
+
+/**
+ * Wall index for O(1) lookups
+ * Maps wall key to { existsOnSideA, existsOnSideB }
+ */
+export type WallIndex = Map<string, { existsOnSideA: boolean; existsOnSideB: boolean }>;
+
+/**
+ * Create a wall index from a maze for efficient lookups
+ */
+export function createWallIndex(maze: DualMaze): WallIndex {
+  const index: WallIndex = new Map();
+  for (const wall of maze.walls) {
+    const key = wallKey(wall.cell1, wall.cell2);
+    index.set(key, {
+      existsOnSideA: wall.existsOnSideA,
+      existsOnSideB: wall.existsOnSideB,
+    });
+  }
+  return index;
+}
+
+/**
+ * Check if there's a wall between two cells using the wall index (O(1))
+ */
+export function hasWallBetweenIndexed(
+  index: WallIndex,
+  cell1: Cell,
+  cell2: Cell,
+  side: Side
+): boolean {
+  const key = wallKey(cell1, cell2);
+  const wall = index.get(key);
+  if (!wall) return false;
+  return side === 'A' ? wall.existsOnSideA : wall.existsOnSideB;
+}
+
 /** Parse a cell key back to a Cell */
 export function parseKey(key: string): Cell {
   const [x, y] = key.split(',').map(Number);

@@ -3,25 +3,15 @@
 import React from 'react';
 import { GeneratedMaze, Side, Treasure, Cell } from '@/lib/maze/types';
 import { cellKey, getCorners } from '@/lib/maze/flood-fill';
-import { TREASURE_NAMES, TREASURE_IMAGES } from '@/lib/maze/constants';
-
-// Wall image assets
-const HORIZONTAL_WALLS = [
-  '/walls/horizontal1.png',
-  '/walls/horizontal2.png',
-  '/walls/horizontal3.png',
-];
-const VERTICAL_WALLS = [
-  '/walls/vertical1.png',
-  '/walls/vertical2.png',
-  '/walls/vertical3.png',
-];
-
-// Simple seeded random for consistent wall selection
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed * 9999) * 10000;
-  return x - Math.floor(x);
-}
+import {
+  TREASURE_NAMES,
+  TREASURE_IMAGES,
+  BACKGROUND_IMAGE,
+  HORIZONTAL_WALL_IMAGES,
+  VERTICAL_WALL_IMAGES,
+  RENDER_CONFIG,
+  getWallImage,
+} from '@/lib/maze/constants';
 
 interface MazeCanvasProps {
   maze: GeneratedMaze;
@@ -65,52 +55,46 @@ export function MazeCanvas({
   // Render walls using image assets
   const renderWalls = () => {
     const wallElements: React.ReactNode[] = [];
-    const wallImageThickness = cellSize * 0.15; // Wall image thickness
+    const wallThickness = cellSize * RENDER_CONFIG.wallThickness;
 
     // Render outer border using wall images
     // Top border
     for (let x = 0; x < gridSize; x++) {
-      const seed = x * 1000 + 1;
-      const wallImage = HORIZONTAL_WALLS[Math.floor(seededRandom(seed) * HORIZONTAL_WALLS.length)];
       wallElements.push(
         <image
           key={`border-top-${x}`}
-          href={wallImage}
+          href={getWallImage(HORIZONTAL_WALL_IMAGES, x, 0, 1)}
           x={padding + x * cellSize}
-          y={padding - wallImageThickness / 2}
+          y={padding - wallThickness / 2}
           width={cellSize}
-          height={wallImageThickness}
+          height={wallThickness}
           preserveAspectRatio="none"
         />
       );
     }
     // Bottom border
     for (let x = 0; x < gridSize; x++) {
-      const seed = x * 1000 + 2;
-      const wallImage = HORIZONTAL_WALLS[Math.floor(seededRandom(seed) * HORIZONTAL_WALLS.length)];
       wallElements.push(
         <image
           key={`border-bottom-${x}`}
-          href={wallImage}
+          href={getWallImage(HORIZONTAL_WALL_IMAGES, x, 0, 2)}
           x={padding + x * cellSize}
-          y={padding + gridSize * cellSize - wallImageThickness / 2}
+          y={padding + gridSize * cellSize - wallThickness / 2}
           width={cellSize}
-          height={wallImageThickness}
+          height={wallThickness}
           preserveAspectRatio="none"
         />
       );
     }
     // Left border
     for (let y = 0; y < gridSize; y++) {
-      const seed = y * 1000 + 3;
-      const wallImage = VERTICAL_WALLS[Math.floor(seededRandom(seed) * VERTICAL_WALLS.length)];
       wallElements.push(
         <image
           key={`border-left-${y}`}
-          href={wallImage}
-          x={padding - wallImageThickness / 2}
+          href={getWallImage(VERTICAL_WALL_IMAGES, 0, y, 3)}
+          x={padding - wallThickness / 2}
           y={padding + y * cellSize}
-          width={wallImageThickness}
+          width={wallThickness}
           height={cellSize}
           preserveAspectRatio="none"
         />
@@ -118,15 +102,13 @@ export function MazeCanvas({
     }
     // Right border
     for (let y = 0; y < gridSize; y++) {
-      const seed = y * 1000 + 4;
-      const wallImage = VERTICAL_WALLS[Math.floor(seededRandom(seed) * VERTICAL_WALLS.length)];
       wallElements.push(
         <image
           key={`border-right-${y}`}
-          href={wallImage}
-          x={padding + gridSize * cellSize - wallImageThickness / 2}
+          href={getWallImage(VERTICAL_WALL_IMAGES, 0, y, 4)}
+          x={padding + gridSize * cellSize - wallThickness / 2}
           y={padding + y * cellSize}
-          width={wallImageThickness}
+          width={wallThickness}
           height={cellSize}
           preserveAspectRatio="none"
         />
@@ -142,15 +124,13 @@ export function MazeCanvas({
         if (x < gridSize - 1) {
           const rightCell = { x: x + 1, y };
           if (hasWall(cell, rightCell)) {
-            const seed = x * 100 + y * 10 + 5;
-            const wallImage = VERTICAL_WALLS[Math.floor(seededRandom(seed) * VERTICAL_WALLS.length)];
             wallElements.push(
               <image
                 key={`wall-v-${x}-${y}`}
-                href={wallImage}
-                x={padding + (x + 1) * cellSize - wallImageThickness / 2}
+                href={getWallImage(VERTICAL_WALL_IMAGES, x, y, 5)}
+                x={padding + (x + 1) * cellSize - wallThickness / 2}
                 y={padding + y * cellSize}
-                width={wallImageThickness}
+                width={wallThickness}
                 height={cellSize}
                 preserveAspectRatio="none"
               />
@@ -162,16 +142,14 @@ export function MazeCanvas({
         if (y < gridSize - 1) {
           const belowCell = { x, y: y + 1 };
           if (hasWall(cell, belowCell)) {
-            const seed = x * 100 + y * 10 + 6;
-            const wallImage = HORIZONTAL_WALLS[Math.floor(seededRandom(seed) * HORIZONTAL_WALLS.length)];
             wallElements.push(
               <image
                 key={`wall-h-${x}-${y}`}
-                href={wallImage}
+                href={getWallImage(HORIZONTAL_WALL_IMAGES, x, y, 6)}
                 x={padding + x * cellSize}
-                y={padding + (y + 1) * cellSize - wallImageThickness / 2}
+                y={padding + (y + 1) * cellSize - wallThickness / 2}
                 width={cellSize}
-                height={wallImageThickness}
+                height={wallThickness}
                 preserveAspectRatio="none"
               />
             );
@@ -198,9 +176,9 @@ export function MazeCanvas({
           y={cy}
           textAnchor="middle"
           dominantBaseline="central"
-          fontSize={cellSize * 0.6}
+          fontSize={cellSize * RENDER_CONFIG.cornerFontSize}
           fontWeight="bold"
-          fill="#333"
+          fill={RENDER_CONFIG.cornerTextColor}
         >
           {index + 1}
         </text>
@@ -217,7 +195,7 @@ export function MazeCanvas({
       const cy = padding + treasure.cell.y * cellSize + cellSize / 2;
       const treasureName = TREASURE_NAMES[treasure.id - 1] || `Treasure ${treasure.id}`;
       const treasureImage = TREASURE_IMAGES[treasureName];
-      const imageSize = cellSize * 0.75;
+      const imageSize = cellSize * RENDER_CONFIG.treasureSize;
 
       return (
         <g key={`treasure-${treasure.id}`}>
@@ -272,8 +250,8 @@ export function MazeCanvas({
           y1={padding}
           x2={padding + i * cellSize}
           y2={padding + gridSize * cellSize}
-          stroke="#ddd"
-          strokeWidth={0.5}
+          stroke={RENDER_CONFIG.gridLineColor}
+          strokeWidth={RENDER_CONFIG.gridLineWidth}
         />
       );
       // Horizontal lines
@@ -284,8 +262,8 @@ export function MazeCanvas({
           y1={padding + i * cellSize}
           x2={padding + gridSize * cellSize}
           y2={padding + i * cellSize}
-          stroke="#ddd"
-          strokeWidth={0.5}
+          stroke={RENDER_CONFIG.gridLineColor}
+          strokeWidth={RENDER_CONFIG.gridLineWidth}
         />
       );
     }
@@ -304,7 +282,7 @@ export function MazeCanvas({
       <defs>
         <pattern id={`bg-pattern-${side}`} patternUnits="userSpaceOnUse" width={totalSize} height={totalSize}>
           <image
-            href="/background.png"
+            href={BACKGROUND_IMAGE}
             width={totalSize}
             height={totalSize}
             preserveAspectRatio="xMidYMid slice"
