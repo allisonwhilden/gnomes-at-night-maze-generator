@@ -13,6 +13,8 @@ import {
   Direction,
   ConfigAdjustment,
   GenerationResult,
+  FailedGenerationResult,
+  MazeDiagnostics,
 } from './types';
 import { DIFFICULTY_CONFIGS, MAX_GENERATION_ATTEMPTS, DIRECTION_VECTORS } from './constants';
 import { SeededRandom, generateSeed } from './random';
@@ -24,7 +26,7 @@ import {
   getNeighbor,
   getDirections,
 } from './flood-fill';
-import { isValidMaze, meetsCooperationRequirement, meetsMinimumRoomSize, meetsMaximumRoomSize, analyzeCooperation } from './validator';
+import { isValidMaze, meetsCooperationRequirement, meetsMinimumRoomSize, meetsMaximumRoomSize, analyzeCooperation, getDiagnostics } from './validator';
 import { placeTreasures } from './treasures';
 
 /**
@@ -533,4 +535,114 @@ export function generateMazeWithFallback(options: MazeGenerationOptions): Genera
     adjustments,
     wasAdjusted: adjustments.length > 0,
   };
+}
+
+/**
+ * Generate a maze without fallback - returns the best attempt with diagnostics if it fails
+ * Used when auto-adjust is disabled and user wants to see what their settings produce
+ */
+export function generateMazeWithDiagnostics(
+  options: MazeGenerationOptions
+): GeneratedMaze | FailedGenerationResult {
+  const baseConfig = DIFFICULTY_CONFIGS[options.difficulty];
+  const config: DifficultyConfig = {
+    ...baseConfig,
+    ...options.customConfig,
+    level: options.difficulty,
+  };
+
+  const seed = options.seed ?? generateSeed();
+  const maxAttempts = options.maxAttempts ?? MAX_GENERATION_ATTEMPTS;
+  const random = new SeededRandom(seed);
+
+  // Reset failure tracking
+  resetFailureReasons();
+
+  let maze: DualMaze | null = null;
+  let bestAttempt: DualMaze | null = null;
+  let bestScore = -Infinity;
+  let attempts = 0;
+
+  while (!maze && attempts < maxAttempts) {
+    attempts++;
+    const attempt = generateMazeAttemptRaw(config, random);
+
+    if (attempt) {
+      // Score this attempt based on how close it is to valid
+      const diagnostics = getDiagnostics(attempt, config);
+      let score = 0;
+
+      // Higher cooperation score is better
+      score += diagnostics.cooperationScore * 30;
+
+      // Fewer room issues is better
+      score -= diagnostics.roomIssues.length * 10;
+
+      // Fewer unreachable cells is better
+      score -= diagnostics.unreachableCells.length * 5;
+
+      // Valid maze gets a big bonus
+      if (diagnostics.isValid) {
+        score += 100;
+        maze = attempt;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestAttempt = attempt;
+      }
+    }
+  }
+
+  // If we found a valid maze, return it normally
+  if (maze) {
+    const { treasuresSideA, treasuresSideB } = placeTreasures(maze, new SeededRandom(seed));
+    return {
+      ...maze,
+      treasuresSideA,
+      treasuresSideB,
+      difficulty: options.difficulty,
+      seed,
+    };
+  }
+
+  // Otherwise, return the best failed attempt with diagnostics
+  if (bestAttempt) {
+    const diagnostics = getDiagnostics(bestAttempt, config);
+    const { treasuresSideA, treasuresSideB } = placeTreasures(bestAttempt, new SeededRandom(seed));
+
+    return {
+      maze: {
+        ...bestAttempt,
+        treasuresSideA,
+        treasuresSideB,
+        difficulty: options.difficulty,
+        seed,
+      },
+      failed: true,
+      diagnostics,
+    };
+  }
+
+  // Fallback - should rarely happen
+  throw new Error('Failed to generate any maze attempt');
+}
+
+/**
+ * Raw maze attempt that returns the maze even if invalid (for diagnostic scoring)
+ */
+function generateMazeAttemptRaw(
+  config: DifficultyConfig,
+  random: SeededRandom
+): DualMaze | null {
+  const gridSize = config.gridSize;
+  const walls = generateDualMazeWalls(gridSize, config, random);
+  const corners = getCorners(gridSize);
+
+  let maze: DualMaze = { gridSize, walls, corners };
+
+  // Adjust for cooperation if needed
+  maze = adjustForCooperation(maze, config, random);
+
+  return maze;
 }

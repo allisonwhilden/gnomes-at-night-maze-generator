@@ -3,7 +3,7 @@
  * Ensures generated mazes require cooperation between both players
  */
 
-import { Cell, DualMaze, CooperationAnalysis, Side } from './types';
+import { Cell, DualMaze, CooperationAnalysis, Side, MazeDiagnostics, RoomIssue, DifficultyConfig } from './types';
 import {
   floodFill,
   floodFillCooperative,
@@ -244,4 +244,144 @@ export function validateTreasuresReachable(
   const reachableSet = new Set(reachableCells.map(cellKey));
 
   return treasures.every((t) => reachableSet.has(cellKey(t)));
+}
+
+/**
+ * Estimate the feasibility of generating a maze with the given config
+ * Returns a score from 0-100 where higher = more likely to succeed
+ */
+export function estimateFeasibility(config: {
+  wallDensity: number;
+  minCooperationScore: number;
+  maxRoomSize: number;
+  minRoomSize: number;
+}): { score: number; warnings: string[] } {
+  let score = 100;
+  const warnings: string[] = [];
+
+  // High wall density + small max room size is problematic
+  if (config.wallDensity > 0.55 && config.maxRoomSize < 15) {
+    score -= 40;
+    warnings.push('High wall density with small rooms is difficult');
+  } else if (config.wallDensity > 0.60 && config.maxRoomSize < 20) {
+    score -= 25;
+    warnings.push('Wall density may conflict with room size');
+  }
+
+  // High cooperation score + high wall density conflicts
+  if (config.minCooperationScore > 0.35 && config.wallDensity > 0.50) {
+    score -= 30;
+    warnings.push('High cooperation with high wall density is challenging');
+  } else if (config.minCooperationScore > 0.40) {
+    score -= 15;
+    warnings.push('Very high cooperation score is hard to achieve');
+  }
+
+  // Min room size too close to max room size
+  const roomSizeRange = config.maxRoomSize - config.minRoomSize;
+  if (roomSizeRange < 5) {
+    score -= 35;
+    warnings.push('Room size range is too narrow');
+  } else if (roomSizeRange < 10) {
+    score -= 15;
+    warnings.push('Limited room size flexibility');
+  }
+
+  // Very small max room size
+  if (config.maxRoomSize < 8) {
+    score -= 25;
+    warnings.push('Max room size is very restrictive');
+  } else if (config.maxRoomSize < 12) {
+    score -= 10;
+  }
+
+  // Very high wall density alone
+  if (config.wallDensity > 0.70) {
+    score -= 20;
+    warnings.push('Very high wall density');
+  }
+
+  // Ensure score stays in valid range
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    warnings,
+  };
+}
+
+/**
+ * Get detailed diagnostics about why a maze fails validation
+ */
+export function getDiagnostics(
+  maze: DualMaze,
+  config: DifficultyConfig
+): MazeDiagnostics {
+  const problems: string[] = [];
+  const roomIssues: RoomIssue[] = [];
+
+  // Check connectivity
+  const corners = getCorners(maze.gridSize);
+  const { unreachableCells } = floodFillCooperative(maze, corners[0]);
+  const isConnected = unreachableCells.length === 0;
+
+  if (!isConnected) {
+    problems.push(`${unreachableCells.length} cells are unreachable`);
+  }
+
+  // Check cooperation score
+  const analysis = analyzeCooperation(maze);
+  const cooperationMet = analysis.cooperationScore >= config.minCooperationScore;
+
+  if (!cooperationMet) {
+    problems.push(
+      `Cooperation score ${(analysis.cooperationScore * 100).toFixed(0)}% is below required ${(config.minCooperationScore * 100).toFixed(0)}%`
+    );
+  }
+
+  // Check room sizes on both sides
+  const checkRooms = (side: Side) => {
+    const rooms = findRooms(maze, side);
+    for (const room of rooms) {
+      if (room.length < config.minRoomSize) {
+        roomIssues.push({
+          cells: room,
+          side,
+          size: room.length,
+          issue: 'too_small',
+          limit: config.minRoomSize,
+        });
+      }
+      if (room.length > config.maxRoomSize) {
+        roomIssues.push({
+          cells: room,
+          side,
+          size: room.length,
+          issue: 'too_large',
+          limit: config.maxRoomSize,
+        });
+      }
+    }
+  };
+
+  checkRooms('A');
+  checkRooms('B');
+
+  const tooSmallCount = roomIssues.filter(r => r.issue === 'too_small').length;
+  const tooLargeCount = roomIssues.filter(r => r.issue === 'too_large').length;
+
+  if (tooSmallCount > 0) {
+    problems.push(`${tooSmallCount} room(s) are too small (min: ${config.minRoomSize})`);
+  }
+  if (tooLargeCount > 0) {
+    problems.push(`${tooLargeCount} room(s) are too large (max: ${config.maxRoomSize})`);
+  }
+
+  return {
+    isValid: isConnected && cooperationMet && roomIssues.length === 0,
+    cooperationScore: analysis.cooperationScore,
+    requiredCooperationScore: config.minCooperationScore,
+    cooperationMet,
+    roomIssues,
+    unreachableCells,
+    problems,
+  };
 }

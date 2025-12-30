@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { GeneratedMaze, Side, Treasure, Cell } from '@/lib/maze/types';
+import { GeneratedMaze, Side, Treasure, Cell, RoomIssue } from '@/lib/maze/types';
 import { cellKey, getCorners } from '@/lib/maze/flood-fill';
 import {
   TREASURE_NAMES,
@@ -20,6 +20,10 @@ interface MazeCanvasProps {
   showTreasures?: boolean;
   showCorners?: boolean;
   className?: string;
+  /** Room issues to highlight (filtered to this side) */
+  roomIssues?: RoomIssue[];
+  /** Unreachable cells to highlight */
+  unreachableCells?: Cell[];
 }
 
 export function MazeCanvas({
@@ -29,6 +33,8 @@ export function MazeCanvas({
   showTreasures = true,
   showCorners = true,
   className = '',
+  roomIssues = [],
+  unreachableCells = [],
 }: MazeCanvasProps) {
   const { gridSize, walls, treasuresSideA, treasuresSideB } = maze;
   const treasures = side === 'A' ? treasuresSideA : treasuresSideB;
@@ -237,6 +243,58 @@ export function MazeCanvas({
     });
   };
 
+  // Render problem overlays (room issues and unreachable cells)
+  const renderProblemOverlays = () => {
+    const overlays: React.ReactNode[] = [];
+
+    // Highlight unreachable cells in gray
+    for (const cell of unreachableCells) {
+      const x = padding + cell.x * cellSize;
+      const y = padding + cell.y * cellSize;
+      overlays.push(
+        <rect
+          key={`unreachable-${cell.x}-${cell.y}`}
+          x={x}
+          y={y}
+          width={cellSize}
+          height={cellSize}
+          fill="rgba(128, 128, 128, 0.5)"
+          stroke="rgba(128, 128, 128, 0.8)"
+          strokeWidth={1}
+        />
+      );
+    }
+
+    // Highlight room issues
+    for (const issue of roomIssues) {
+      const color = issue.issue === 'too_small'
+        ? 'rgba(239, 68, 68, 0.4)'  // red for too small
+        : 'rgba(251, 146, 60, 0.4)'; // orange for too large
+      const strokeColor = issue.issue === 'too_small'
+        ? 'rgba(239, 68, 68, 0.8)'
+        : 'rgba(251, 146, 60, 0.8)';
+
+      for (const cell of issue.cells) {
+        const x = padding + cell.x * cellSize;
+        const y = padding + cell.y * cellSize;
+        overlays.push(
+          <rect
+            key={`room-issue-${issue.side}-${cell.x}-${cell.y}`}
+            x={x}
+            y={y}
+            width={cellSize}
+            height={cellSize}
+            fill={color}
+            stroke={strokeColor}
+            strokeWidth={1}
+          />
+        );
+      }
+    }
+
+    return overlays;
+  };
+
   // Render grid lines (subtle)
   const renderGrid = () => {
     const gridLines: React.ReactNode[] = [];
@@ -290,6 +348,9 @@ export function MazeCanvas({
         </pattern>
       </defs>
       <rect width={totalSize} height={totalSize} fill={`url(#bg-pattern-${side})`} />
+
+      {/* Problem overlays (rendered early so they're behind other elements) */}
+      {(roomIssues.length > 0 || unreachableCells.length > 0) && renderProblemOverlays()}
 
       {/* Grid lines */}
       {renderGrid()}

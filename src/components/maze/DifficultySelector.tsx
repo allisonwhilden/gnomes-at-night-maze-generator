@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { DifficultyLevel, DifficultyConfig } from '@/lib/maze/types';
 import { DIFFICULTY_CONFIGS } from '@/lib/maze/constants';
+import { estimateFeasibility } from '@/lib/maze/validator';
 import {
   Select,
   SelectContent,
@@ -36,6 +37,28 @@ export function DifficultySelector({
 }: DifficultySelectorProps) {
   const baseConfig = DIFFICULTY_CONFIGS[difficulty];
   const currentConfig = { ...baseConfig, ...customConfig };
+
+  const feasibility = useMemo(() => {
+    if (difficulty !== 'custom') return null;
+    return estimateFeasibility({
+      wallDensity: currentConfig.wallDensity,
+      minCooperationScore: currentConfig.minCooperationScore,
+      maxRoomSize: currentConfig.maxRoomSize,
+      minRoomSize: currentConfig.minRoomSize,
+    });
+  }, [difficulty, currentConfig.wallDensity, currentConfig.minCooperationScore, currentConfig.maxRoomSize, currentConfig.minRoomSize]);
+
+  const getFeasibilityColor = (score: number) => {
+    if (score >= 80) return 'bg-green-500';
+    if (score >= 50) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const getFeasibilityLabel = (score: number) => {
+    if (score >= 80) return 'Good';
+    if (score >= 50) return 'Risky';
+    return 'Unlikely';
+  };
 
   return (
     <div className="space-y-4">
@@ -122,6 +145,35 @@ export function DifficultySelector({
               }
             />
           </div>
+
+          {/* Feasibility Indicator */}
+          {feasibility && (
+            <div className="pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-sm">Generation Feasibility</Label>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                  feasibility.score >= 80 ? 'bg-green-100 text-green-700' :
+                  feasibility.score >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {getFeasibilityLabel(feasibility.score)}
+                </span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${getFeasibilityColor(feasibility.score)}`}
+                  style={{ width: `${feasibility.score}%` }}
+                />
+              </div>
+              {feasibility.warnings.length > 0 && (
+                <ul className="mt-2 text-xs text-gray-500 space-y-0.5">
+                  {feasibility.warnings.map((warning, i) => (
+                    <li key={i}>• {warning}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

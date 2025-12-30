@@ -109,3 +109,30 @@ export interface GenerationResult {
   adjustments: ConfigAdjustment[];
   wasAdjusted: boolean;
 }
+
+/** Information about a problematic room */
+export interface RoomIssue {
+  cells: Cell[];
+  side: Side;
+  size: number;
+  issue: 'too_small' | 'too_large';
+  limit: number;
+}
+
+/** Diagnostic information about maze validation failures */
+export interface MazeDiagnostics {
+  isValid: boolean;
+  cooperationScore: number;
+  requiredCooperationScore: number;
+  cooperationMet: boolean;
+  roomIssues: RoomIssue[];
+  unreachableCells: Cell[];
+  problems: string[];
+}
+
+/** Result when generation fails but we want to show the best attempt */
+export interface FailedGenerationResult {
+  maze: GeneratedMaze;
+  failed: true;
+  diagnostics: MazeDiagnostics;
+}
