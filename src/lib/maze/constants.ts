@@ -15,6 +15,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     minCooperationScore: 0.2,
     asymmetryFactor: 0.5,
     maxRoomSize: 45,
+    minRoomSize: 2,
   },
   B: {
     level: 'B',
@@ -23,6 +24,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     minCooperationScore: 0.25,
     asymmetryFactor: 0.55,
     maxRoomSize: 35,
+    minRoomSize: 1,
   },
   C: {
     level: 'C',
@@ -31,6 +33,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     minCooperationScore: 0.25,
     asymmetryFactor: 0.6,
     maxRoomSize: 30,
+    minRoomSize: 1,
   },
   D: {
     level: 'D',
@@ -39,6 +42,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     minCooperationScore: 0.30,
     asymmetryFactor: 0.70,
     maxRoomSize: 30,
+    minRoomSize: 1,
   },
   custom: {
     level: 'custom',
@@ -47,6 +51,7 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
     minCooperationScore: 0.25,
     asymmetryFactor: 0.55,
     maxRoomSize: 30,
+    minRoomSize: 1,
   },
 };
 

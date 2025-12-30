@@ -59,6 +59,8 @@ export interface DifficultyConfig {
   asymmetryFactor: number;
   /** Maximum room size (number of cells) - smaller rooms = harder difficulty */
   maxRoomSize: number;
+  /** Minimum room size (number of cells) - larger minimum = easier difficulty */
+  minRoomSize: number;
 }
 
 export interface MazeGenerationOptions {

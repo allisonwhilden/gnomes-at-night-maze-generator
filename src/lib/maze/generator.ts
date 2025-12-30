@@ -282,8 +282,8 @@ function generateMazeAttempt(
     return null;
   }
 
-  // Ensure all rooms are at least 3 cells in size
-  if (!meetsMinimumRoomSize(maze)) {
+  // Ensure all rooms are at least minRoomSize cells
+  if (!meetsMinimumRoomSize(maze, config.minRoomSize)) {
     failureReasons.roomTooSmall++;
     return null;
   }
