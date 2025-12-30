@@ -10,6 +10,7 @@ import {
   getAllCells,
   cellKey,
   getCorners,
+  findRooms,
 } from './flood-fill';
 
 /**
@@ -119,6 +120,36 @@ export function isValidMaze(maze: DualMaze): boolean {
 
   for (let i = 1; i < corners.length; i++) {
     if (!firstCornerReachable.has(cellKey(corners[i]))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/** Minimum number of cells required for a room to be valid */
+export const MIN_ROOM_SIZE = 3;
+
+/**
+ * Check if all rooms on both sides of the maze meet the minimum size requirement
+ * Rooms must have at least MIN_ROOM_SIZE cells (default: 3)
+ */
+export function meetsMinimumRoomSize(
+  maze: DualMaze,
+  minSize: number = MIN_ROOM_SIZE
+): boolean {
+  // Check rooms on side A
+  const roomsA = findRooms(maze, 'A');
+  for (const room of roomsA) {
+    if (room.length < minSize) {
+      return false;
+    }
+  }
+
+  // Check rooms on side B
+  const roomsB = findRooms(maze, 'B');
+  for (const room of roomsB) {
+    if (room.length < minSize) {
       return false;
     }
   }
