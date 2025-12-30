@@ -22,7 +22,7 @@ import {
   getNeighbor,
   getDirections,
 } from './flood-fill';
-import { isValidMaze, meetsCooperationRequirement, analyzeCooperation } from './validator';
+import { isValidMaze, meetsCooperationRequirement, meetsMinimumRoomSize, analyzeCooperation } from './validator';
 import { placeTreasures } from './treasures';
 
 /**
@@ -258,6 +258,11 @@ function generateMazeAttempt(
   }
 
   if (!meetsCooperationRequirement(maze, config.minCooperationScore)) {
+    return null;
+  }
+
+  // Ensure all rooms are at least 3 cells in size
+  if (!meetsMinimumRoomSize(maze)) {
     return null;
   }
 

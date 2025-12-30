@@ -193,3 +193,45 @@ export function getCorners(gridSize: number): Cell[] {
     { x: gridSize - 1, y: gridSize - 1 },     // Bottom-right
   ];
 }
+
+/**
+ * Find all rooms (connected regions) on a given side of the maze
+ * A room is a set of cells connected without walls between them
+ * Returns an array of rooms, where each room is an array of cells
+ */
+export function findRooms(maze: DualMaze, side: Side): Cell[][] {
+  const visited = new Set<string>();
+  const rooms: Cell[][] = [];
+  const allCells = getAllCells(maze.gridSize);
+
+  for (const startCell of allCells) {
+    const key = cellKey(startCell);
+    if (visited.has(key)) {
+      continue;
+    }
+
+    // BFS to find all cells in this room
+    const room: Cell[] = [];
+    const queue: Cell[] = [startCell];
+    visited.add(key);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      room.push(current);
+
+      for (const direction of getDirections()) {
+        const neighbor = getNeighbor(current, direction);
+        const neighborKey = cellKey(neighbor);
+
+        if (!visited.has(neighborKey) && canMove(maze, current, neighbor, side)) {
+          visited.add(neighborKey);
+          queue.push(neighbor);
+        }
+      }
+    }
+
+    rooms.push(room);
+  }
+
+  return rooms;
+}
