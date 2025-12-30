@@ -93,7 +93,7 @@ export default function Home() {
                   setDifficulty(d);
                   setCustomConfig({});
                 }}
-                onCustomConfigChange={setCustomConfig}
+                onCustomConfigChange={(config) => setCustomConfig(prev => ({ ...prev, ...config }))}
               />
 
               <div className="space-y-3">
