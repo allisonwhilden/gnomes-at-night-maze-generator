@@ -49,7 +49,7 @@ export type DifficultyLevel = 'A' | 'B' | 'C' | 'D' | 'custom';
 
 export interface DifficultyConfig {
   level: DifficultyLevel;
-  /** Grid size (NxN) */
+  /** Grid size (NxN) - always 9 for standard mazes */
   gridSize: number;
   /** Wall density - percentage of possible walls that exist (0.0 - 1.0) */
   wallDensity: number;
@@ -57,6 +57,8 @@ export interface DifficultyConfig {
   minCooperationScore: number;
   /** How different the two sides should be (0.0 - 1.0) */
   asymmetryFactor: number;
+  /** Maximum room size (number of cells) - smaller rooms = harder difficulty */
+  maxRoomSize: number;
 }
 
 export interface MazeGenerationOptions {

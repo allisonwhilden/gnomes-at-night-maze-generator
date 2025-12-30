@@ -21,10 +21,10 @@ interface DifficultySelectorProps {
 }
 
 const difficultyDescriptions: Record<DifficultyLevel, string> = {
-  A: 'Easy - 5×5 grid, fewer walls, great for beginners',
-  B: 'Medium - 6×6 grid, moderate complexity',
-  C: 'Hard - 7×7 grid, more challenging paths',
-  D: 'Expert - 8×8 grid, maximum difficulty',
+  A: 'Easy - Large rooms, fewer walls, great for beginners',
+  B: 'Medium - Medium-sized rooms, moderate complexity',
+  C: 'Hard - Smaller rooms, more challenging paths',
+  D: 'Expert - Tiny rooms, maximum difficulty',
   custom: 'Custom - Set your own parameters',
 };
 
@@ -60,18 +60,19 @@ export function DifficultySelector({
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
           <div className="space-y-2">
             <div className="flex justify-between">
-              <Label>Grid Size</Label>
-              <span className="text-sm font-mono">{currentConfig.gridSize}×{currentConfig.gridSize}</span>
+              <Label>Max Room Size</Label>
+              <span className="text-sm font-mono">{currentConfig.maxRoomSize} cells</span>
             </div>
             <Slider
-              value={[currentConfig.gridSize]}
+              value={[currentConfig.maxRoomSize]}
               min={4}
-              max={10}
+              max={30}
               step={1}
               onValueChange={([value]) =>
-                onCustomConfigChange({ gridSize: value })
+                onCustomConfigChange({ maxRoomSize: value })
               }
             />
+            <p className="text-xs text-gray-400">Smaller rooms = harder difficulty</p>
           </div>
 
           <div className="space-y-2">

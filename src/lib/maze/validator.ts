@@ -158,6 +158,33 @@ export function meetsMinimumRoomSize(
 }
 
 /**
+ * Check if all rooms on both sides of the maze meet the maximum size requirement
+ * Smaller max room size = harder difficulty (more cramped spaces)
+ */
+export function meetsMaximumRoomSize(
+  maze: DualMaze,
+  maxSize: number
+): boolean {
+  // Check rooms on side A
+  const roomsA = findRooms(maze, 'A');
+  for (const room of roomsA) {
+    if (room.length > maxSize) {
+      return false;
+    }
+  }
+
+  // Check rooms on side B
+  const roomsB = findRooms(maze, 'B');
+  for (const room of roomsB) {
+    if (room.length > maxSize) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Get cells that would be good candidates for treasure placement
  * Prioritizes cells that require cooperation to reach
  */

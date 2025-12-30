@@ -4,41 +4,49 @@
 
 import { DifficultyConfig, DifficultyLevel } from './types';
 
+/** Standard grid size for all mazes (9x9 like the original game) */
+export const STANDARD_GRID_SIZE = 9;
+
 export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   A: {
     level: 'A',
-    gridSize: 5,
+    gridSize: STANDARD_GRID_SIZE,
     wallDensity: 0.35,
     minCooperationScore: 0.2,
     asymmetryFactor: 0.5,
+    maxRoomSize: 45,
   },
   B: {
     level: 'B',
-    gridSize: 6,
+    gridSize: STANDARD_GRID_SIZE,
     wallDensity: 0.45,
     minCooperationScore: 0.25,
     asymmetryFactor: 0.55,
+    maxRoomSize: 35,
   },
   C: {
     level: 'C',
-    gridSize: 7,
+    gridSize: STANDARD_GRID_SIZE,
     wallDensity: 0.55,
     minCooperationScore: 0.3,
     asymmetryFactor: 0.6,
+    maxRoomSize: 25,
   },
   D: {
     level: 'D',
-    gridSize: 8,
+    gridSize: STANDARD_GRID_SIZE,
     wallDensity: 0.65,
     minCooperationScore: 0.35,
     asymmetryFactor: 0.65,
+    maxRoomSize: 18,
   },
   custom: {
     level: 'custom',
-    gridSize: 6,
+    gridSize: STANDARD_GRID_SIZE,
     wallDensity: 0.5,
     minCooperationScore: 0.25,
     asymmetryFactor: 0.55,
+    maxRoomSize: 30,
   },
 };
 
@@ -82,3 +90,19 @@ export const TREASURE_NAMES = [
   'Magical Moss',
   "Dragon's Tooth",
 ] as const;
+
+/** Mapping from treasure names to image file paths */
+export const TREASURE_IMAGES: Record<string, string> = {
+  'Glass Key': '/objects/GlassKey.png',
+  'Spyglass': '/objects/Spyglass.png',
+  'Golden Horseshoe': '/objects/GoldenHorseshoe.png',
+  'Map of Legends': '/objects/MapOfLegends.png',
+  'Walking Stick': '/objects/WalkingStick.png',
+  'Ancient Book': '/objects/AncientBook.png',
+  'Hourglass': '/objects/Hourglass.png',
+  'Amulet': '/objects/Amulet.png',
+  'Magic Potion': '/objects/MagicPotion.png',
+  'Jeweled Goblet': '/objects/JeweledGoblet.png',
+  'Magical Moss': '/objects/MagicalMoss.png',
+  "Dragon's Tooth": '/objects/DragonsTooth.png',
+};
