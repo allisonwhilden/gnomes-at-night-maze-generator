@@ -128,7 +128,7 @@ export function isValidMaze(maze: DualMaze): boolean {
 }
 
 /** Minimum number of cells required for a room to be valid */
-export const MIN_ROOM_SIZE = 3;
+export const MIN_ROOM_SIZE = 1;
 
 /**
  * Check if all rooms on both sides of the maze meet the minimum size requirement

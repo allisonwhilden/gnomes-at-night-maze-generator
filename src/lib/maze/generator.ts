@@ -236,6 +236,25 @@ function adjustForCooperation(
   return currentMaze;
 }
 
+// Track failure reasons for debugging
+const failureReasons = {
+  invalidMaze: 0,
+  cooperationTooLow: 0,
+  roomTooSmall: 0,
+  roomTooLarge: 0,
+};
+
+export function getFailureReasons() {
+  return { ...failureReasons };
+}
+
+export function resetFailureReasons() {
+  failureReasons.invalidMaze = 0;
+  failureReasons.cooperationTooLow = 0;
+  failureReasons.roomTooSmall = 0;
+  failureReasons.roomTooLarge = 0;
+}
+
 /**
  * Generate a single maze attempt
  */
@@ -254,20 +273,24 @@ function generateMazeAttempt(
 
   // Validate the maze
   if (!isValidMaze(maze)) {
+    failureReasons.invalidMaze++;
     return null;
   }
 
   if (!meetsCooperationRequirement(maze, config.minCooperationScore)) {
+    failureReasons.cooperationTooLow++;
     return null;
   }
 
   // Ensure all rooms are at least 3 cells in size
   if (!meetsMinimumRoomSize(maze)) {
+    failureReasons.roomTooSmall++;
     return null;
   }
 
   // Ensure all rooms are at most maxRoomSize cells
   if (!meetsMaximumRoomSize(maze, config.maxRoomSize)) {
+    failureReasons.roomTooLarge++;
     return null;
   }
 
@@ -289,6 +312,9 @@ export function generateMaze(options: MazeGenerationOptions): GeneratedMaze {
   const maxAttempts = options.maxAttempts ?? MAX_GENERATION_ATTEMPTS;
   const random = new SeededRandom(seed);
 
+  // Reset failure tracking
+  resetFailureReasons();
+
   let maze: DualMaze | null = null;
   let attempts = 0;
 
@@ -298,8 +324,12 @@ export function generateMaze(options: MazeGenerationOptions): GeneratedMaze {
   }
 
   if (!maze) {
+    const reasons = getFailureReasons();
+    console.error('Maze generation failure breakdown:', reasons);
     throw new Error(
-      `Failed to generate valid maze after ${maxAttempts} attempts`
+      `Failed to generate valid maze after ${maxAttempts} attempts. ` +
+      `Failures: invalid=${reasons.invalidMaze}, coopLow=${reasons.cooperationTooLow}, ` +
+      `roomSmall=${reasons.roomTooSmall}, roomLarge=${reasons.roomTooLarge}`
     );
   }
 

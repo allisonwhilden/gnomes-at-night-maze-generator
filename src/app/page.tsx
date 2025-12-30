@@ -163,35 +163,6 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Instructions */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>How to Play</CardTitle>
-          </CardHeader>
-          <CardContent className="prose prose-slate max-w-none">
-            <div className="grid md:grid-cols-2 gap-6 text-sm text-slate-600">
-              <div>
-                <h4 className="font-semibold text-slate-800 mb-2">Setup</h4>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Print the PDF double-sided</li>
-                  <li>Place the board upright between two players</li>
-                  <li>Each player sits on opposite sides</li>
-                  <li>Place magnetic gnomes at a numbered corner</li>
-                </ol>
-              </div>
-              <div>
-                <h4 className="font-semibold text-slate-800 mb-2">Gameplay</h4>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Pick a treasure to find (numbered circles)</li>
-                  <li>Move only along paths on YOUR side</li>
-                  <li>Walls on your side block YOU - not your partner!</li>
-                  <li>Communicate to help each other reach treasures</li>
-                </ol>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <footer className="text-center mt-8 text-sm text-slate-500">
           <p>
             Based on <a href="https://boardgamegeek.com/boardgame/205766/gnomes-at-night" className="underline" target="_blank" rel="noopener noreferrer">Gnomes at Night</a> by Carlo A. Rossi

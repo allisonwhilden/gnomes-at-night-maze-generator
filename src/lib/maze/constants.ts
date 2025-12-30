@@ -27,18 +27,18 @@ export const DIFFICULTY_CONFIGS: Record<DifficultyLevel, DifficultyConfig> = {
   C: {
     level: 'C',
     gridSize: STANDARD_GRID_SIZE,
-    wallDensity: 0.55,
-    minCooperationScore: 0.3,
+    wallDensity: 0.50,
+    minCooperationScore: 0.25,
     asymmetryFactor: 0.6,
-    maxRoomSize: 25,
+    maxRoomSize: 30,
   },
   D: {
     level: 'D',
     gridSize: STANDARD_GRID_SIZE,
-    wallDensity: 0.65,
-    minCooperationScore: 0.35,
-    asymmetryFactor: 0.65,
-    maxRoomSize: 18,
+    wallDensity: 0.55,
+    minCooperationScore: 0.30,
+    asymmetryFactor: 0.70,
+    maxRoomSize: 30,
   },
   custom: {
     level: 'custom',
@@ -57,7 +57,7 @@ export const TREASURES_PER_SIDE = 6;
 export const TOTAL_TREASURES = 12;
 
 /** Maximum generation attempts before giving up */
-export const MAX_GENERATION_ATTEMPTS = 100;
+export const MAX_GENERATION_ATTEMPTS = 500;
 
 /** Direction vectors for navigation */
 export const DIRECTION_VECTORS = {
