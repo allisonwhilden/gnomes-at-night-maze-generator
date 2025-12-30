@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { generateMaze, regenerateMaze, getMazeStats } from '@/lib/maze';
-import { GeneratedMaze, DifficultyLevel, DifficultyConfig } from '@/lib/maze/types';
+import { generateMazeWithFallback, getMazeStats, generateSeed } from '@/lib/maze';
+import { GeneratedMaze, DifficultyLevel, DifficultyConfig, ConfigAdjustment } from '@/lib/maze/types';
 import { MazePreview, DifficultySelector } from '@/components/maze';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -13,17 +13,31 @@ export default function Home() {
   const [maze, setMaze] = useState<GeneratedMaze | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adjustments, setAdjustments] = useState<ConfigAdjustment[]>([]);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     setError(null);
+    setAdjustments([]);
 
     try {
-      const newMaze = generateMaze({
+      const result = generateMazeWithFallback({
         difficulty,
         customConfig: difficulty === 'custom' ? customConfig : undefined,
       });
-      setMaze(newMaze);
+      setMaze(result.maze);
+      setAdjustments(result.adjustments);
+
+      // Update sliders to reflect adjusted values
+      if (result.adjustments.length > 0 && difficulty === 'custom') {
+        setCustomConfig(prev => {
+          const updated = { ...prev };
+          for (const adj of result.adjustments) {
+            (updated as Record<string, number>)[adj.parameter] = adj.adjustedValue;
+          }
+          return updated;
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate maze');
     } finally {
@@ -34,13 +48,27 @@ export default function Home() {
   const handleRegenerate = useCallback(async () => {
     setIsGenerating(true);
     setError(null);
+    setAdjustments([]);
 
     try {
-      const newMaze = regenerateMaze({
+      const result = generateMazeWithFallback({
         difficulty,
         customConfig: difficulty === 'custom' ? customConfig : undefined,
+        seed: generateSeed(),
       });
-      setMaze(newMaze);
+      setMaze(result.maze);
+      setAdjustments(result.adjustments);
+
+      // Update sliders to reflect adjusted values
+      if (result.adjustments.length > 0 && difficulty === 'custom') {
+        setCustomConfig(prev => {
+          const updated = { ...prev };
+          for (const adj of result.adjustments) {
+            (updated as Record<string, number>)[adj.parameter] = adj.adjustedValue;
+          }
+          return updated;
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate maze');
     } finally {
@@ -130,6 +158,22 @@ export default function Home() {
               {error && (
                 <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
                   {error}
+                </div>
+              )}
+
+              {adjustments.length > 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm">
+                  <p className="font-medium mb-1">Settings adjusted to generate maze:</p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {adjustments.map((adj, i) => (
+                      <li key={i}>
+                        {adj.parameter === 'maxRoomSize' && `Max room size: ${adj.originalValue} → ${adj.adjustedValue}`}
+                        {adj.parameter === 'minRoomSize' && `Min room size: ${adj.originalValue} → ${adj.adjustedValue}`}
+                        {adj.parameter === 'minCooperationScore' && `Min cooperation: ${(adj.originalValue * 100).toFixed(0)}% → ${(adj.adjustedValue * 100).toFixed(0)}%`}
+                        {adj.parameter === 'wallDensity' && `Wall density: ${(adj.originalValue * 100).toFixed(0)}% → ${(adj.adjustedValue * 100).toFixed(0)}%`}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 

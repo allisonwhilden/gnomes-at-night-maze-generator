@@ -11,6 +11,8 @@ import {
   DifficultyConfig,
   MazeGenerationOptions,
   Direction,
+  ConfigAdjustment,
+  GenerationResult,
 } from './types';
 import { DIFFICULTY_CONFIGS, MAX_GENERATION_ATTEMPTS, DIRECTION_VECTORS } from './constants';
 import { SeededRandom, generateSeed } from './random';
@@ -383,5 +385,152 @@ export function getMazeStats(maze: GeneratedMaze) {
     cellsRequiringCooperation: analysis.requiresCooperation.length,
     totalCells: maze.gridSize * maze.gridSize,
     seed: maze.seed,
+  };
+}
+
+/**
+ * Relax constraints based on the dominant failure reason
+ * Returns the adjusted config and the adjustment made
+ */
+function relaxConstraints(
+  config: DifficultyConfig,
+  reasons: ReturnType<typeof getFailureReasons>
+): { config: DifficultyConfig; adjustment: ConfigAdjustment | null } {
+  // Find the dominant failure reason
+  const maxFailures = Math.max(
+    reasons.roomTooLarge,
+    reasons.cooperationTooLow,
+    reasons.roomTooSmall,
+    reasons.invalidMaze
+  );
+
+  if (maxFailures === 0) {
+    return { config, adjustment: null };
+  }
+
+  // Relax the constraint causing the most failures
+  if (reasons.roomTooLarge === maxFailures && config.maxRoomSize < 50) {
+    const newValue = Math.min(config.maxRoomSize + 5, 50);
+    return {
+      config: { ...config, maxRoomSize: newValue },
+      adjustment: {
+        parameter: 'maxRoomSize',
+        originalValue: config.maxRoomSize,
+        adjustedValue: newValue,
+      },
+    };
+  }
+
+  if (reasons.cooperationTooLow === maxFailures && config.minCooperationScore > 0.1) {
+    const newValue = Math.max(config.minCooperationScore - 0.05, 0.1);
+    return {
+      config: { ...config, minCooperationScore: newValue },
+      adjustment: {
+        parameter: 'minCooperationScore',
+        originalValue: config.minCooperationScore,
+        adjustedValue: newValue,
+      },
+    };
+  }
+
+  if (reasons.roomTooSmall === maxFailures && config.minRoomSize > 1) {
+    const newValue = Math.max(config.minRoomSize - 1, 1);
+    return {
+      config: { ...config, minRoomSize: newValue },
+      adjustment: {
+        parameter: 'minRoomSize',
+        originalValue: config.minRoomSize,
+        adjustedValue: newValue,
+      },
+    };
+  }
+
+  if (reasons.invalidMaze === maxFailures && config.wallDensity > 0.2) {
+    const newValue = Math.max(config.wallDensity - 0.05, 0.2);
+    return {
+      config: { ...config, wallDensity: newValue },
+      adjustment: {
+        parameter: 'wallDensity',
+        originalValue: config.wallDensity,
+        adjustedValue: newValue,
+      },
+    };
+  }
+
+  return { config, adjustment: null };
+}
+
+/**
+ * Generate a maze with automatic fallback if initial settings fail
+ * Relaxes constraints up to 3 times to ensure a maze is generated
+ */
+export function generateMazeWithFallback(options: MazeGenerationOptions): GenerationResult {
+  const baseConfig = DIFFICULTY_CONFIGS[options.difficulty];
+  let config: DifficultyConfig = {
+    ...baseConfig,
+    ...options.customConfig,
+    level: options.difficulty,
+  };
+
+  const seed = options.seed ?? generateSeed();
+  const maxAttempts = options.maxAttempts ?? MAX_GENERATION_ATTEMPTS;
+  const maxRelaxations = 3;
+  const adjustments: ConfigAdjustment[] = [];
+
+  let maze: DualMaze | null = null;
+  let relaxationRound = 0;
+
+  while (!maze && relaxationRound <= maxRelaxations) {
+    const random = new SeededRandom(seed + relaxationRound);
+    resetFailureReasons();
+
+    let attempts = 0;
+    while (!maze && attempts < maxAttempts) {
+      attempts++;
+      maze = generateMazeAttempt(config, random);
+    }
+
+    if (!maze && relaxationRound < maxRelaxations) {
+      const reasons = getFailureReasons();
+      const { config: relaxedConfig, adjustment } = relaxConstraints(config, reasons);
+
+      if (adjustment) {
+        adjustments.push(adjustment);
+        config = relaxedConfig;
+      } else {
+        // No more relaxations possible
+        break;
+      }
+    }
+
+    relaxationRound++;
+  }
+
+  if (!maze) {
+    const reasons = getFailureReasons();
+    console.error('Maze generation failure breakdown:', reasons);
+    throw new Error(
+      `Failed to generate valid maze after ${maxRelaxations} relaxation rounds. ` +
+      `Failures: invalid=${reasons.invalidMaze}, coopLow=${reasons.cooperationTooLow}, ` +
+      `roomSmall=${reasons.roomTooSmall}, roomLarge=${reasons.roomTooLarge}`
+    );
+  }
+
+  // Place treasures
+  const random = new SeededRandom(seed);
+  const { treasuresSideA, treasuresSideB } = placeTreasures(maze, random);
+
+  const generatedMaze: GeneratedMaze = {
+    ...maze,
+    treasuresSideA,
+    treasuresSideB,
+    difficulty: options.difficulty,
+    seed,
+  };
+
+  return {
+    maze: generatedMaze,
+    adjustments,
+    wasAdjusted: adjustments.length > 0,
   };
 }

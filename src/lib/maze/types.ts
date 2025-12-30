@@ -95,3 +95,17 @@ export type Direction = 'north' | 'south' | 'east' | 'west';
 
 /** Which side of the board */
 export type Side = 'A' | 'B';
+
+/** Tracks a single configuration adjustment made during fallback */
+export interface ConfigAdjustment {
+  parameter: keyof DifficultyConfig;
+  originalValue: number;
+  adjustedValue: number;
+}
+
+/** Result of maze generation with fallback, includes adjustment info */
+export interface GenerationResult {
+  maze: GeneratedMaze;
+  adjustments: ConfigAdjustment[];
+  wasAdjusted: boolean;
+}
