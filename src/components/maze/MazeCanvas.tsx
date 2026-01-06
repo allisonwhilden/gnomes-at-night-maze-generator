@@ -334,7 +334,8 @@ export function MazeCanvas({
       width={totalSize}
       height={totalSize}
       viewBox={`0 0 ${totalSize} ${totalSize}`}
-      className={className}
+      className={`max-w-full h-auto ${className}`}
+      style={{ display: 'block' }}
     >
       {/* Background */}
       <defs>

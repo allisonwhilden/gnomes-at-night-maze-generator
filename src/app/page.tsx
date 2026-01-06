@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useResponsiveCellSize } from '@/hooks/useResponsiveCellSize';
 
 export default function Home() {
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('A');
@@ -19,6 +20,7 @@ export default function Home() {
   const [autoAdjust, setAutoAdjust] = useState(true);
   const [diagnostics, setDiagnostics] = useState<MazeDiagnostics | null>(null);
   const [isFailed, setIsFailed] = useState(false);
+  const cellSize = useResponsiveCellSize();
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
@@ -268,7 +270,7 @@ export default function Home() {
               {maze ? (
                 <MazePreview
                   maze={maze}
-                  cellSize={45}
+                  cellSize={cellSize}
                   diagnostics={isFailed ? diagnostics ?? undefined : undefined}
                 />
               ) : (

@@ -22,8 +22,8 @@ export function MazePreview({ maze, cellSize = 50, diagnostics }: MazePreviewPro
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-6 justify-center">
-        <div className="flex flex-col items-center">
+      <div className="flex flex-wrap gap-4 sm:gap-6 justify-center">
+        <div className="flex flex-col items-center w-full sm:w-auto max-w-full">
           <MazeCanvas
             maze={maze}
             side="A"
@@ -33,7 +33,7 @@ export function MazePreview({ maze, cellSize = 50, diagnostics }: MazePreviewPro
             unreachableCells={unreachableCells}
           />
         </div>
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center w-full sm:w-auto max-w-full">
           <MazeCanvas
             maze={maze}
             side="B"
