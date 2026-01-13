@@ -350,18 +350,6 @@ export function generateMaze(options: MazeGenerationOptions): GeneratedMaze {
 }
 
 /**
- * Regenerate a maze with a new seed
- */
-export function regenerateMaze(
-  options: MazeGenerationOptions
-): GeneratedMaze {
-  return generateMaze({
-    ...options,
-    seed: generateSeed(),
-  });
-}
-
-/**
  * Get maze statistics for debugging/display
  */
 export function getMazeStats(maze: GeneratedMaze) {

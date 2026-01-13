@@ -131,6 +131,18 @@ export function isValidMaze(maze: DualMaze): boolean {
 export const MIN_ROOM_SIZE = 1;
 
 /**
+ * Check if all rooms on both sides meet a size predicate
+ */
+function checkRoomSizes(
+  maze: DualMaze,
+  predicate: (roomSize: number) => boolean
+): boolean {
+  const roomsA = findRooms(maze, 'A');
+  const roomsB = findRooms(maze, 'B');
+  return [...roomsA, ...roomsB].every(room => predicate(room.length));
+}
+
+/**
  * Check if all rooms on both sides of the maze meet the minimum size requirement
  * Rooms must have at least MIN_ROOM_SIZE cells (default: 1)
  */
@@ -138,23 +150,7 @@ export function meetsMinimumRoomSize(
   maze: DualMaze,
   minSize: number = MIN_ROOM_SIZE
 ): boolean {
-  // Check rooms on side A
-  const roomsA = findRooms(maze, 'A');
-  for (const room of roomsA) {
-    if (room.length < minSize) {
-      return false;
-    }
-  }
-
-  // Check rooms on side B
-  const roomsB = findRooms(maze, 'B');
-  for (const room of roomsB) {
-    if (room.length < minSize) {
-      return false;
-    }
-  }
-
-  return true;
+  return checkRoomSizes(maze, size => size >= minSize);
 }
 
 /**
@@ -165,23 +161,7 @@ export function meetsMaximumRoomSize(
   maze: DualMaze,
   maxSize: number
 ): boolean {
-  // Check rooms on side A
-  const roomsA = findRooms(maze, 'A');
-  for (const room of roomsA) {
-    if (room.length > maxSize) {
-      return false;
-    }
-  }
-
-  // Check rooms on side B
-  const roomsB = findRooms(maze, 'B');
-  for (const room of roomsB) {
-    if (room.length > maxSize) {
-      return false;
-    }
-  }
-
-  return true;
+  return checkRoomSizes(maze, size => size <= maxSize);
 }
 
 /**

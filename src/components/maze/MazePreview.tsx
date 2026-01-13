@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { GeneratedMaze, MazeDiagnostics } from '@/lib/maze/types';
 import { MazeCanvas } from './MazeCanvas';
 import { getMazeStats } from '@/lib/maze/generator';
@@ -13,7 +13,7 @@ interface MazePreviewProps {
 }
 
 export function MazePreview({ maze, cellSize = 50, diagnostics }: MazePreviewProps) {
-  const stats = getMazeStats(maze);
+  const stats = useMemo(() => getMazeStats(maze), [maze]);
 
   // Filter room issues by side
   const roomIssuesA = diagnostics?.roomIssues.filter(r => r.side === 'A') ?? [];

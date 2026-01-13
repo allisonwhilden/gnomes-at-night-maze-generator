@@ -22,19 +22,34 @@ export default function Home() {
   const [isFailed, setIsFailed] = useState(false);
   const cellSize = useResponsiveCellSize();
 
-  const handleGenerate = useCallback(async () => {
+  const formatAdjustment = (adj: ConfigAdjustment): string => {
+    const labels: Record<string, string> = {
+      maxRoomSize: 'Max room size',
+      minRoomSize: 'Min room size',
+      minCooperationScore: 'Min cooperation',
+      wallDensity: 'Wall density',
+    };
+    const isPercentage = adj.parameter === 'minCooperationScore' || adj.parameter === 'wallDensity';
+    const formatValue = (v: number) => isPercentage ? `${(v * 100).toFixed(0)}%` : String(v);
+    return `${labels[adj.parameter] ?? adj.parameter}: ${formatValue(adj.originalValue)} → ${formatValue(adj.adjustedValue)}`;
+  };
+
+  const handleGenerate = useCallback(async (forceNewSeed = false) => {
     setIsGenerating(true);
     setError(null);
     setAdjustments([]);
     setDiagnostics(null);
     setIsFailed(false);
 
+    const options = {
+      difficulty,
+      customConfig: difficulty === 'custom' ? customConfig : undefined,
+      ...(forceNewSeed && { seed: generateSeed() }),
+    };
+
     try {
       if (autoAdjust) {
-        const result = generateMazeWithFallback({
-          difficulty,
-          customConfig: difficulty === 'custom' ? customConfig : undefined,
-        });
+        const result = generateMazeWithFallback(options);
         setMaze(result.maze);
         setAdjustments(result.adjustments);
 
@@ -50,60 +65,7 @@ export default function Home() {
         }
       } else {
         // Use generateMazeWithDiagnostics to show best attempt even if it fails
-        const result = generateMazeWithDiagnostics({
-          difficulty,
-          customConfig: difficulty === 'custom' ? customConfig : undefined,
-        });
-
-        if ('failed' in result && result.failed) {
-          setMaze(result.maze);
-          setDiagnostics(result.diagnostics);
-          setIsFailed(true);
-        } else {
-          setMaze(result as GeneratedMaze);
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate maze');
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [difficulty, customConfig, autoAdjust]);
-
-  const handleRegenerate = useCallback(async () => {
-    setIsGenerating(true);
-    setError(null);
-    setAdjustments([]);
-    setDiagnostics(null);
-    setIsFailed(false);
-
-    try {
-      if (autoAdjust) {
-        const result = generateMazeWithFallback({
-          difficulty,
-          customConfig: difficulty === 'custom' ? customConfig : undefined,
-          seed: generateSeed(),
-        });
-        setMaze(result.maze);
-        setAdjustments(result.adjustments);
-
-        // Update sliders to reflect adjusted values
-        if (result.adjustments.length > 0 && difficulty === 'custom') {
-          setCustomConfig(prev => {
-            const updated = { ...prev };
-            for (const adj of result.adjustments) {
-              (updated as Record<string, number>)[adj.parameter] = adj.adjustedValue;
-            }
-            return updated;
-          });
-        }
-      } else {
-        // Use generateMazeWithDiagnostics to show best attempt even if it fails
-        const result = generateMazeWithDiagnostics({
-          difficulty,
-          customConfig: difficulty === 'custom' ? customConfig : undefined,
-          seed: generateSeed(),
-        });
+        const result = generateMazeWithDiagnostics(options);
 
         if ('failed' in result && result.failed) {
           setMaze(result.maze);
@@ -183,7 +145,7 @@ export default function Home() {
 
               <div className="space-y-3">
                 <Button
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate()}
                   disabled={isGenerating}
                   className="w-full"
                 >
@@ -193,7 +155,7 @@ export default function Home() {
                 {maze && (
                   <>
                     <Button
-                      onClick={handleRegenerate}
+                      onClick={() => handleGenerate(true)}
                       disabled={isGenerating}
                       variant="outline"
                       className="w-full"
@@ -223,12 +185,7 @@ export default function Home() {
                   <p className="font-medium mb-1">Settings adjusted to generate maze:</p>
                   <ul className="list-disc list-inside space-y-0.5">
                     {adjustments.map((adj, i) => (
-                      <li key={i}>
-                        {adj.parameter === 'maxRoomSize' && `Max room size: ${adj.originalValue} → ${adj.adjustedValue}`}
-                        {adj.parameter === 'minRoomSize' && `Min room size: ${adj.originalValue} → ${adj.adjustedValue}`}
-                        {adj.parameter === 'minCooperationScore' && `Min cooperation: ${(adj.originalValue * 100).toFixed(0)}% → ${(adj.adjustedValue * 100).toFixed(0)}%`}
-                        {adj.parameter === 'wallDensity' && `Wall density: ${(adj.originalValue * 100).toFixed(0)}% → ${(adj.adjustedValue * 100).toFixed(0)}%`}
-                      </li>
+                      <li key={i}>{formatAdjustment(adj)}</li>
                     ))}
                   </ul>
                 </div>

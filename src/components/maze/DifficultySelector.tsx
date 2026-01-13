@@ -48,16 +48,14 @@ export function DifficultySelector({
     });
   }, [difficulty, currentConfig.wallDensity, currentConfig.minCooperationScore, currentConfig.maxRoomSize, currentConfig.minRoomSize]);
 
-  const getFeasibilityColor = (score: number) => {
-    if (score >= 80) return 'bg-green-500';
-    if (score >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
-
-  const getFeasibilityLabel = (score: number) => {
-    if (score >= 80) return 'Good';
-    if (score >= 50) return 'Risky';
-    return 'Unlikely';
+  const getFeasibilityStyles = (score: number) => {
+    if (score >= 80) {
+      return { bg: 'bg-green-500', label: 'Good', badge: 'bg-green-100 text-green-700' };
+    }
+    if (score >= 50) {
+      return { bg: 'bg-yellow-500', label: 'Risky', badge: 'bg-yellow-100 text-yellow-700' };
+    }
+    return { bg: 'bg-red-500', label: 'Unlikely', badge: 'bg-red-100 text-red-700' };
   };
 
   return (
@@ -151,17 +149,13 @@ export function DifficultySelector({
             <div className="pt-3 border-t border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm">Generation Feasibility</Label>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                  feasibility.score >= 80 ? 'bg-green-100 text-green-700' :
-                  feasibility.score >= 50 ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {getFeasibilityLabel(feasibility.score)}
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${getFeasibilityStyles(feasibility.score).badge}`}>
+                  {getFeasibilityStyles(feasibility.score).label}
                 </span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-300 ${getFeasibilityColor(feasibility.score)}`}
+                  className={`h-full transition-all duration-300 ${getFeasibilityStyles(feasibility.score).bg}`}
                   style={{ width: `${feasibility.score}%` }}
                 />
               </div>
